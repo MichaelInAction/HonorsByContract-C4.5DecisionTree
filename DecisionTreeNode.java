@@ -13,31 +13,67 @@ class DecisionTreeNode{
   private DecisionTreeNode right;
 
   //The field in the data which is looked at to make a decision
-  private String decisionField;
+  private int decisionField;
   //The operation on decisionField which decides which child node to visit
   private String decisionOp;
   //Should this be a leaf node, this is the value which this node represents
   private String value;
 
   public DecisionTreeNode(){
-    this.decisionField = "";
+    this.decisionField = -1;
     this.decisionOp = "";
     this.value = "";
     this.left = null;
     this.right = null;
   }
 
-  public DecisionTreeNode(String decisionField, String decisionOp, String value){
+  public DecisionTreeNode(int decisionField, String decisionOp, String value){
     this.decisionField = decisionField;
     this.decisionOp = decisionOp;
     this.value = value;
-    this.left = new DecisionTreeNode();
-    this.right = new DecisionTreeNode();
+    this.left = null;
+    this.right = null;
+  }
+
+  public int checkData(String[] data){
+    if(getValue().equals("N/A")){
+      System.out.println(getDecisionOp() + "  " + data[decisionField]);
+      if(getDecisionOp().substring(0,1).equals("=")){
+        if(data[decisionField].equals(getDecisionOp().substring(1))){
+          System.out.println("going left");
+          return this.left.checkData(data);
+        }
+        else{
+          System.out.println("going right");
+          return this.right.checkData(data);
+        }
+      }
+      else{
+        if(Double.parseDouble(data[decisionField]) < Double.parseDouble(getDecisionOp().substring(1))){
+          System.out.println("going left");
+          return this.left.checkData(data);
+        }
+        else{
+          System.out.println("going right");
+          return this.right.checkData(data);
+        }
+      }
+    }
+    else{
+      if(data[data.length - 1].equals(getValue())){
+        System.out.println("yes");
+        return 1;
+      }
+      else{
+        System.out.println("no");
+        return 0;
+      }
+    }
   }
 
   public DecisionTreeNode getLeft()          { return left;          }
   public DecisionTreeNode getRight()         { return right;         }
-  public String           getDecisionField() { return decisionField; }
+  public int              getDecisionField() { return decisionField; }
   public String           getDecisionOp()    { return decisionOp;    }
   public String           getValue()         { return value;         }
 
@@ -103,9 +139,18 @@ class DecisionTree{
     System.out.println("Depth: " + depth);
   }
 
+  public double testData(String[][] data){
+    int numAccurate = 0;
+    int total = data.length;
+    for(int i = 0; i < total; i++){
+      numAccurate = numAccurate + root.checkData(data[i]);
+    }
+    return (numAccurate + 0.0)/(total + 0.0);
+  }
+
   public DecisionTree buildDecisionTree(String[][] data){
     if(data.length == 0){
-      root = new DecisionTreeNode("N/A", "N/A", "FAILURE");
+      root = new DecisionTreeNode(-1, "N/A", "FAILURE");
       System.out.println("Found a failure");
     }
     else{
@@ -130,7 +175,7 @@ class DecisionTree{
         }
       }
       if(temp.size() == 1){
-        root = new DecisionTreeNode("N/A", "N/A", temp.get(0)[0]);
+        root = new DecisionTreeNode(-1, "N/A", temp.get(0)[0]);
         System.out.println("No further splitting required");
       }
       else{
@@ -152,12 +197,12 @@ class DecisionTree{
               highestIndex = i;
             }
           }
-          root = new DecisionTreeNode("N/A", "N/A", temp.get(highestIndex)[0]);
+          root = new DecisionTreeNode(-1, "N/A", temp.get(highestIndex)[0]);
           System.out.println("No further splitting possible");
         }
         else{
           String[][][] splitArray = splitOnAttribute(data, highestAttribute);
-          root = new DecisionTreeNode(splitArray[2][0][0], splitArray[2][1][0], "N/A");
+          root = new DecisionTreeNode(Integer.parseInt(splitArray[2][0][0]), splitArray[2][1][0], "N/A");
           //System.out.println(splitArray[2][0][0]);
           //System.out.println(splitArray[2][1][0]);
           System.out.println("Creating Left...");
@@ -181,7 +226,7 @@ class DecisionTree{
       }
       Double[] tempArray = temp.toArray(new Double[0]);
       double highestRatio = 0.0;
-      double bestPartition = 0.0;
+      double bestPartition = tempArray[0];
       ArrayList<ArrayList<String[]>> partitions = new ArrayList<ArrayList<String[]>>();
       partitions.add(new ArrayList<String[]>());
       partitions.add(new ArrayList<String[]>());
@@ -202,6 +247,9 @@ class DecisionTree{
         }
         else if(highestRatio < gainRatio((String[][]) partitions.get(1).toArray(new String[0][0]), attribute)){
           highestRatio = gainRatio((String[][]) partitions.get(1).toArray(new String[0][0]), attribute);
+          bestPartition = tempArray[i];
+        }
+        else if(tempArray.length == 2 && tempArray[i] > bestPartition){
           bestPartition = tempArray[i];
         }
         partitions.remove(0);

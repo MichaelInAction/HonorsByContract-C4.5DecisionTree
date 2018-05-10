@@ -34,6 +34,7 @@ class TreeBuilder{
     DecisionTree tree = new DecisionTree(0);
     tree.buildDecisionTree(data);
     tree.getRoot().printPreorder();
+    System.out.println(tree.testData(data));
   }
 
   /*Returns true if the given String s is an integer in
