@@ -1,4 +1,5 @@
 import java.util.Scanner;
+import java.util.ArrayList;
 /*Implements the c4.5 algorithm to construct
  *a binary decision tree using a set of
  *training data
@@ -22,18 +23,21 @@ class TreeBuilder{
     }
     for(int i = 0; i < data.length; i++){
       for(int j = 0; j < data[i].length; j++){
-        System.out.println(data[i][j]);
+        //System.out.println(data[i][j]);
+        //System.out.println(isInteger(data[i][j], 10));
       }
-      System.out.println("-----------");
+      //System.out.println("-----------");
     }
-    System.out.println(data[0].length);
-    System.out.println(data.length);
+    //System.out.println(data[0].length);
+    //System.out.println(data.length);
 
-    Tree tree = new Tree();
-
+    DecisionTree tree = new DecisionTree(0);
+    tree.buildDecisionTree(data);
+    tree.getRoot().printPreorder();
   }
 
-  /*Returns true if the given
+  /*Returns true if the given String s is an integer in
+   *the given base radix.
    */
   public static boolean isInteger(String s, int radix) {
     if(s.isEmpty()) return false;
