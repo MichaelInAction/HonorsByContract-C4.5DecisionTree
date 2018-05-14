@@ -1,5 +1,6 @@
 import java.util.ArrayList;
 import java.util.TreeSet;
+import java.util.Random;
 /*This is an implementation of a Tree node
  *used for implementing a C4.5 tree building algorithm
  *@author Michael Read
@@ -8,9 +9,13 @@ import java.util.TreeSet;
 class DecisionTreeNode{
 
   //The left child node
-  private DecisionTreeNode left;
+  public DecisionTreeNode left;
   //the right child node
-  private DecisionTreeNode right;
+  public DecisionTreeNode right;
+  //the parent node
+  private DecisionTreeNode parent;
+  //the direction coming from the parent node
+  private String direction;
 
   //The field in the data which is looked at to make a decision
   private int decisionField;
@@ -19,64 +24,77 @@ class DecisionTreeNode{
   //Should this be a leaf node, this is the value which this node represents
   private String value;
 
+  /*Default constructor for DecisionTreeNode
+   *Initializes all fields to null, empty, -1 values
+   */
   public DecisionTreeNode(){
     this.decisionField = -1;
     this.decisionOp = "";
     this.value = "";
     this.left = null;
     this.right = null;
+    this.parent = null;
+    this.direction = "";
   }
 
-  public DecisionTreeNode(int decisionField, String decisionOp, String value){
+  /*Constructor for DecisionTreeNode
+   *sets all fields to the given values
+   */
+  public DecisionTreeNode(int decisionField, String decisionOp, String value, DecisionTreeNode parent, String direction){
     this.decisionField = decisionField;
     this.decisionOp = decisionOp;
     this.value = value;
     this.left = null;
     this.right = null;
+    this.parent = parent;
+    this.direction = direction;
   }
 
+  /*Compares the given data entry to the tree to determine if
+   *the tree accurately classifies given data.
+   *returns 1 if the data is accurately classified
+   *returns 0 if the data is incorrectly classified
+   */
   public int checkData(String[] data){
     if(getValue().equals("N/A")){
-      System.out.println(getDecisionOp() + "  " + data[decisionField]);
       if(getDecisionOp().substring(0,1).equals("=")){
         if(data[decisionField].equals(getDecisionOp().substring(1))){
-          System.out.println("going left");
           return this.left.checkData(data);
         }
         else{
-          System.out.println("going right");
           return this.right.checkData(data);
         }
       }
       else{
         if(Double.parseDouble(data[decisionField]) < Double.parseDouble(getDecisionOp().substring(1))){
-          System.out.println("going left");
           return this.left.checkData(data);
         }
         else{
-          System.out.println("going right");
           return this.right.checkData(data);
         }
       }
     }
     else{
       if(data[data.length - 1].equals(getValue())){
-        System.out.println("yes");
         return 1;
       }
       else{
-        System.out.println("no");
         return 0;
       }
     }
   }
 
+  //basic getter functions for the fields
   public DecisionTreeNode getLeft()          { return left;          }
   public DecisionTreeNode getRight()         { return right;         }
+  public DecisionTreeNode getParent()        { return parent;        }
   public int              getDecisionField() { return decisionField; }
   public String           getDecisionOp()    { return decisionOp;    }
   public String           getValue()         { return value;         }
+  public String           getDirection()     { return direction;     }
 
+  /*inserts a node as the left child of this node
+   */
   public void insertLeft(DecisionTreeNode toInsert){
     if(left == null){
       left = toInsert;
@@ -86,6 +104,8 @@ class DecisionTreeNode{
     }
   }
 
+  /*Inserts a node as the right child of this node
+   */
   public void insertRight(DecisionTreeNode toInsert){
     if(right == null){
       right = toInsert;
@@ -95,13 +115,56 @@ class DecisionTreeNode{
     }
   }
 
+  /*Returns the total number of nodes in the tree having this node as the root
+   */
+  public int size(){
+    if(this.left == null && this.right == null){
+      return 1;
+    }
+    else if(this.left == null){
+      return 1 + this.right.size();
+    }
+    else if(this.right == null){
+      return 1 + this.left.size();
+    }
+    else{
+      return 1 + this.left.size() + this.right.size();
+    }
+  }
+
+  /*Goes through the tree to find a random node in the tree
+   */
+  public DecisionTreeNode getRandomNode(){
+    int size = size();
+    int leftSize;
+    if(left == null){
+      leftSize = 0;
+    }
+    else{
+      leftSize = left.size();
+    }
+    Random rand = new Random();
+    int index = rand.nextInt(size);
+    if(index < leftSize){
+      return left.getRandomNode();
+    }
+    else if(index == leftSize){
+      return this;
+    }
+    else{
+      return right.getRandomNode();
+    }
+  }
+
+  /*Prints the tree having this node as the root in Pre order
+   */
   public void printPreorder() {
     String indent = "";
     if(this.getValue().equals("N/A")){
-      System.out.println(indent + this.getDecisionField() + " " + this.getDecisionOp());
+      System.out.println(indent + "Split on attribute " + this.getDecisionField() + ", based on if " + this.getDecisionOp());
     }
     else{
-      System.out.println(indent + this.getValue());
+      System.out.println(indent + "Value: " + this.getValue());
     }
     if(this.getLeft() != null){
       this.getLeft().printPreorder("  ");
@@ -111,12 +174,14 @@ class DecisionTreeNode{
     }
   }
 
+  /*Helper method for printPreorder() for better formatting
+   */
   private void printPreorder(String indent){
     if(this.getValue().equals("N/A")){
-      System.out.println(indent + this.getDecisionField() + " " + this.getDecisionOp());
+      System.out.println(indent + "Split on attribute " + this.getDecisionField() + ", based on if " + this.getDecisionOp());
     }
     else{
-      System.out.println(indent + this.getValue());
+      System.out.println(indent + "Value: " + this.getValue());
     }
     if(this.getLeft() != null){
       this.getLeft().printPreorder(indent + "  ");
@@ -130,15 +195,76 @@ class DecisionTreeNode{
 
 class DecisionTree{
 
+  //The root of the tree
   private DecisionTreeNode root;
-  private int depth;
 
-  public DecisionTree(int depth){
+  /*Constructor for the DecisionTree class
+   *Initializes the root to a new DecisionTreeNode
+   */
+  public DecisionTree(){
     root = new DecisionTreeNode();
-    this.depth = depth;
-    System.out.println("Depth: " + depth);
   }
 
+  /*randomly prunes the tree until it reaches a given number of failures,
+   *meaning it fails to remove a node numFailures times. A node is determined
+   *to be ok to removed if the removal results in a drop in the originalAccuracy
+   *less than the given maxAccuracyDrop
+   */
+  public void randomPrune(int numFailures, double originalAccuracy,
+  double maxAccuracyDrop, String[] possibleValues, String[][] data){
+    DecisionTreeNode randomNode = root.getRandomNode();
+    boolean failure = true;
+    if(randomNode.getParent() != null){
+      DecisionTreeNode randomParent = randomNode.getParent();
+      for(int i = 0; i < possibleValues.length; i++){
+        DecisionTreeNode tempNode = new DecisionTreeNode(-1, "N/A", possibleValues[i], randomNode.getParent(), randomNode.getDirection());
+        if(randomNode.getDirection().equals("left")){
+          randomParent.left = tempNode;
+          if(testData(data) >= originalAccuracy - maxAccuracyDrop){
+            failure = false;
+            break;
+          }
+          else{
+            randomParent.left = randomNode;
+          }
+        }
+        else{
+          randomParent.right = tempNode;
+          if(testData(data) >= originalAccuracy - maxAccuracyDrop){
+            failure = false;
+            break;
+          }
+          else{
+            randomParent.right = randomNode;
+          }
+        }
+      }
+      if(failure && numFailures >= 1){
+        randomPrune(numFailures - 1, originalAccuracy, maxAccuracyDrop, possibleValues, data);
+      }
+      else if(!failure){
+        randomPrune(numFailures, originalAccuracy, maxAccuracyDrop, possibleValues, data);
+      }
+    }
+    else{
+      for(int i = 0; i < possibleValues.length; i++){
+        DecisionTreeNode tempNode = new DecisionTreeNode(-1, "N/A", possibleValues[i], null, randomNode.getDirection());
+        root = tempNode;
+        if(testData(data) >= originalAccuracy - maxAccuracyDrop){
+          failure = false;
+          break;
+        }
+        else{
+          root = randomNode;
+          randomPrune(numFailures - 1, originalAccuracy, maxAccuracyDrop, possibleValues, data);
+        }
+      }
+    }
+  }
+
+  /*Tests the given dataset against the tree to determine the accuracy of the
+   *decision tree. Returns the accuracy as a decimal value
+   */
   public double testData(String[][] data){
     int numAccurate = 0;
     int total = data.length;
@@ -148,10 +274,11 @@ class DecisionTree{
     return (numAccurate + 0.0)/(total + 0.0);
   }
 
-  public DecisionTree buildDecisionTree(String[][] data){
+  /*Constructs a c4.5 decision tree based on the given data
+   */
+  public DecisionTree buildDecisionTree(String[][] data, DecisionTreeNode parent, String direction){
     if(data.length == 0){
-      root = new DecisionTreeNode(-1, "N/A", "FAILURE");
-      System.out.println("Found a failure");
+      root = new DecisionTreeNode(-1, "N/A", "FAILURE", parent, direction);
     }
     else{
       ArrayList<String[]> temp = new ArrayList<String[]>();
@@ -175,8 +302,7 @@ class DecisionTree{
         }
       }
       if(temp.size() == 1){
-        root = new DecisionTreeNode(-1, "N/A", temp.get(0)[0]);
-        System.out.println("No further splitting required");
+        root = new DecisionTreeNode(-1, "N/A", temp.get(0)[0], parent, direction);
       }
       else{
         double highestRatio = 0.0;
@@ -188,8 +314,6 @@ class DecisionTree{
             highestRatio = tempRatio;
           }
         }
-        //System.out.println(highestAttribute);
-        //System.out.println(highestRatio);
         if(highestRatio == 0){
           int highestIndex = 0;
           for(int i = 0; i < temp.size(); i++){
@@ -197,28 +321,24 @@ class DecisionTree{
               highestIndex = i;
             }
           }
-          root = new DecisionTreeNode(-1, "N/A", temp.get(highestIndex)[0]);
-          System.out.println("No further splitting possible");
+          root = new DecisionTreeNode(-1, "N/A", temp.get(highestIndex)[0], parent, direction);
         }
         else{
           String[][][] splitArray = splitOnAttribute(data, highestAttribute);
-          root = new DecisionTreeNode(Integer.parseInt(splitArray[2][0][0]), splitArray[2][1][0], "N/A");
-          //System.out.println(splitArray[2][0][0]);
-          //System.out.println(splitArray[2][1][0]);
-          System.out.println("Creating Left...");
-          DecisionTree tempLeft = new DecisionTree(depth + 1);
-          root.insertLeft(tempLeft.buildDecisionTree(splitArray[0]).getRoot());
-          System.out.println("Creating Right...");
-          DecisionTree tempRight = new DecisionTree(depth + 1);
-          root.insertRight(tempRight.buildDecisionTree(splitArray[1]).getRoot());
+          root = new DecisionTreeNode(Integer.parseInt(splitArray[2][0][0]), splitArray[2][1][0], "N/A", parent, direction);
+          DecisionTree tempLeft = new DecisionTree();
+          root.insertLeft(tempLeft.buildDecisionTree(splitArray[0], root, "left").getRoot());
+          DecisionTree tempRight = new DecisionTree();
+          root.insertRight(tempRight.buildDecisionTree(splitArray[1], root, "right").getRoot());
         }
       }
     }
     return this;
   }
 
+  /*Splits the given dataset into two datasets on the given attribute
+   */
   public String[][][] splitOnAttribute(String[][] data, int attribute){
-    System.out.println("Splitting on " + attribute);
     if(isDouble(data[0][attribute])){
       TreeSet<Double> temp = new TreeSet<Double>();
       for(int i = 0; i < data.length; i++){
@@ -267,22 +387,7 @@ class DecisionTree{
       }
       String[][][] ret = new String[3][][];
       ret[0] = (String[][]) partitions.get(0).toArray(new String[0][0]);
-      System.out.println("---------------");
-      for(int i = 0; i < ret[0].length; i++){
-        for(int j = 0; j < ret[0][i].length; j++){
-          System.out.print(ret[0][i][j] + " ");
-        }
-        System.out.println();
-      }
-      System.out.println("---------------");
       ret[1] = (String[][]) partitions.get(1).toArray(new String[0][0]);
-      for(int i = 0; i < ret[1].length; i++){
-        for(int j = 0; j < ret[1][i].length; j++){
-          System.out.print(ret[1][i][j] + " ");
-        }
-        System.out.println();
-      }
-      System.out.println("---------------");
       ret[2] = new String[][]{{"" + attribute},{"<" + bestPartition}};
       return ret;
     }
@@ -331,29 +436,13 @@ class DecisionTree{
       }
       String[][][] ret = new String[3][][];
       ret[0] = (String[][]) partitions.get(0).toArray(new String[0][0]);
-      System.out.println("---------------");
-      for(int i = 0; i < ret[0].length; i++){
-        for(int j = 0; j < ret[0][i].length; j++){
-          System.out.print(ret[0][i][j] + " ");
-        }
-        System.out.println();
-      }
-      System.out.println("---------------");
       ret[1] = (String[][]) partitions.get(1).toArray(new String[0][0]);
-      for(int i = 0; i < ret[1].length; i++){
-        for(int j = 0; j < ret[1][i].length; j++){
-          System.out.print(ret[1][i][j] + " ");
-        }
-        System.out.println();
-      }
-      System.out.println("---------------");
       ret[2] = new String[][]{{"" + attribute},{"="+bestPartition}};
       return ret;
     }
   }
 
   /*Calculates the Gain Ratio for the given dataset
-   *Gain Ratio is defined as
    */
   public double gainRatio(String[][] data, int attribute){
     return gain(data, attribute) / splitInfo(data, attribute);
@@ -407,7 +496,7 @@ class DecisionTree{
     return -1.0*ret;
   }
 
-  /*Calculates the
+  /*Calculates the info for the given dataset for the given attribute
    */
   public static double info(String[][] data, int attribute){
 
@@ -449,7 +538,7 @@ class DecisionTree{
     return sum;
   }
 
-  /*Calculates the Split Info
+  /*Calculates the Split Info for the given dataset for the given attribute
    */
   public static double splitInfo(String[][] data, int attribute){
 
@@ -498,7 +587,9 @@ class DecisionTree{
     return true;
   }
 
-  boolean isDouble(String str) {
+  /*Returns true if the given String s is a double
+   */
+  public static boolean isDouble(String str) {
         try {
             Double.parseDouble(str);
             return true;
@@ -507,6 +598,7 @@ class DecisionTree{
         }
     }
 
+  //Basic getter and setter for the root node
   public DecisionTreeNode getRoot(){ return root; }
   public void setRoot(DecisionTreeNode newRoot){ root = newRoot; }
 
