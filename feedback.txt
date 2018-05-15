@@ -1,0 +1,13 @@
+Michael,
+
+This is a nice implementation of C4.5.
+Overall good job.
+
+Here are a few observations:
+- it does not fully follow the style guidelines (indentation, headers, etc.)
+- using type String for direction may not be the best way of doing it
+- an actual dataset would be cool to have on your repo if you want to show this
+  to the world :)
+
+Peace,
+- Dr. P
